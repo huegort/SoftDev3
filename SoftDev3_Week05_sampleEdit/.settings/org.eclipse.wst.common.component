@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="SoftDev3_Week05_sampleEdit">
+        <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <property name="context-root" value="SoftDev3_Week05_sampleEdit"/>
+        <property name="java-output-path" value="/SoftDev3_Week05_sampleEdit/build/classes"/>
+    </wb-module>
+</project-modules>
