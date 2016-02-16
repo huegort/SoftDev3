@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js" ></script>
+
+
+<script>
+var count = 1;
+$(function (){
+	console.log("var count is "+count);	
+	$("#addFieldButton").click(function (evt){
+		evt.preventDefault();
+		$("#formFields").append(""+count+"<input "+ 
+				"type=\"text\" "+
+				"name=\"new"+count+" \"/><br/>");
+		count++;
+		console.log("var count is "+count);	
+			
+	});
+	$("#submitForm").click(function (evt){
+		evt.preventDefault();
+		var params={};
+		$("#formFields").children("input").each(function(){
+			var gotValue = $(this).val();
+			var gotName = $(this).name();
+			console.log("will submit name"+gotName+ ":"+gotValue);
+		});
+		
+			
+	});
+	
+});
+	
+		
+
+</script>
+
+</head>
+<body>
+	<form action="process" method="get">
+		<input id="countField" type="hidden" name="numberOfNew" value="0">
+		<div id="formFields">
+			<input type=text name="field1" value="id" /> <br /> 
+			<input type=text name="field2" value="firstname" /> <br />
+
+		</div>
+		<button id="addFieldButton">add field</button>
+		<button id="submitForm">submitForm</button>
+
+	</form>
+
+</body>
+</html>
