@@ -25,7 +25,9 @@ public class TestDAO {
 		
 		// test get one
 		long bookId = book1.getId();
+		System.out.println("book id is "+bookId);
 		Book testBook = bookDAO.findById(bookId);
+		System.out.println("book is "+testBook);
 		assert book1.equals(testBook);
 		
 		// test get all
