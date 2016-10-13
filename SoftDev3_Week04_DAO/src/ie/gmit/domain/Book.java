@@ -1,5 +1,6 @@
 package ie.gmit.domain;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Book {
@@ -75,8 +76,12 @@ public class Book {
 		if (datePublished == null) {
 			if (other.datePublished != null)
 				return false;
-		} else if (!datePublished.equals(other.datePublished))
-			return false;
+		} else {
+			SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd");
+			if (!fmt.format(datePublished).equals(fmt.format(other.datePublished)))
+				return false;
+		}
+			
 		if (id != other.id)
 			return false;
 		if (title == null) {

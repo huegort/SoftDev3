@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import ie.gmit.dao.BookDAO;
@@ -30,9 +31,9 @@ public class BookDAOSimpleImpl implements BookDAO {
 			PreparedStatement ps = getPreparedStatement(connection,sql);
 			ps.setString(1, book.getTitle());
 			ps.setString(2, book.getAuthor());
-			ps.setDate(3, new java.sql.Date(book.getDatePublished().getTime()));
+			ps.setTimestamp(3, new java.sql.Timestamp(book.getDatePublished().getTime()));
 			
-			System.out.println(ps.executeUpdate());
+			ps.executeUpdate();
 			ResultSet rs = ps.getGeneratedKeys();
 		    rs.next();
 		   book.setId( rs.getLong(1));
@@ -87,7 +88,7 @@ public class BookDAOSimpleImpl implements BookDAO {
 			 
 			 ps.setString(1, book.getTitle());
 			 ps.setString(2, book.getAuthor());
-			 ps.setDate(3, new java.sql.Date(book.getDatePublished().getTime()));
+			 ps.setTimestamp(3, new java.sql.Timestamp(book.getDatePublished().getTime()));
 			 ps.setLong(4, book.getId());
 			 
 			 ps.executeUpdate();
@@ -126,18 +127,15 @@ public class BookDAOSimpleImpl implements BookDAO {
 
 	@Override
 	public Book findById(long id) {
-		Book book = new Book();
+		Book book = null;
 		String sql = "select * from book where id = ?";
 		Connection connection = null;
 		try{
 			PreparedStatement ps = this.getPreparedStatement(connection, sql);
 			ps.setLong(1, id);
 			ResultSet rs = ps.executeQuery();
-			while (rs.next()){
-				book.setId(rs.getLong("id"));
-				book.setTitle(rs.getString("title"));
-				book.setAuthor(rs.getString("author"));
-				book.setDatePublished(new Date(rs.getDate("datePublished").getTime()));
+			if (rs.next()){
+				book = this.bindRSToObject(rs);
 			}
 		}catch(SQLException e){
 			throw new RuntimeException(e);
@@ -152,8 +150,28 @@ public class BookDAOSimpleImpl implements BookDAO {
 
 	@Override
 	public List<Book> getAll() {
-		// TODO Auto-generated method stub
-		return null;
+		List<Book> books = new LinkedList<Book>();
+		String sql = "select * from book;";
+		
+		Connection connection = null;
+		try{
+			PreparedStatement ps = this.getPreparedStatement(connection, sql);
+			// no population of ps
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()){
+				Book book = this.bindRSToObject(rs);
+				books.add(book);
+			}
+			
+		}catch(SQLException e){
+			throw new RuntimeException(e);
+		}finally{
+			if (connection != null){
+				this.closeConnection(connection);
+			}
+		}
+		
+		return books;
 	}
 	private void closeConnection(Connection connection){
 		if (connection!= null){
@@ -177,6 +195,14 @@ public class BookDAOSimpleImpl implements BookDAO {
 		// statement! we should be using preparedStatement
 		PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		return ps;
+	}
+	private Book bindRSToObject(ResultSet rs) throws SQLException{
+		Book book = new Book();
+		book.setId(rs.getLong("id"));
+		book.setTitle(rs.getString("title"));
+		book.setAuthor(rs.getString("author"));
+		book.setDatePublished(new Date(rs.getTimestamp("datePublished").getTime()));
+		return book;
 	}
 
 }
