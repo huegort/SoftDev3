@@ -12,5 +12,6 @@ public interface BookDAO {
 	
 	public Book findById(long id);
 	public List<Book> getAll();
+	
 
 }

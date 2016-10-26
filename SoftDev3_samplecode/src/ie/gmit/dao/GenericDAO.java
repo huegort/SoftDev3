@@ -1,5 +1,8 @@
 package ie.gmit.dao;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -7,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import ie.gmit.domain.Book;
@@ -21,32 +25,79 @@ public abstract class GenericDAO<T extends Entity> {
 	
 	String dbUrl ="jdbc:mysql://"+dbHost+"/"+dbDatabase;
 	
+	protected abstract Class getDAOClass();
 	
-	protected abstract String getTableName();
+	protected  String getTableName(){
+		return getDAOClass().getSimpleName().toLowerCase();
+	}
 	
-	protected abstract String[] getColumnNames();
-	protected abstract void populatePS(PreparedStatement ps, T entity) throws SQLException;
-	protected abstract Book bindRSToObject(ResultSet rs) throws SQLException;
+	protected String[] getColumnNames(){
+		Class tClass = getDAOClass();
+		int num = tClass.getDeclaredFields().length;
+		
+		String[] columnNames = new String[num];
+		int count= 0;
+		for (Field field : tClass.getDeclaredFields()){
+			System.out.println("field : "+field.getName() + " type: "+field.getType().getName());
+			columnNames[count] = field.getName().toLowerCase();
+			count++;
+		}
+		return columnNames;
+	}
+	protected void populatePS(PreparedStatement ps, T entity) throws SQLException{
+		Class tClass = getDAOClass();
+		
+		int count= 1;
+		for (Field field : tClass.getDeclaredFields()){
+			String fieldName= field.getName();
+			String getMethodName ="get"+ fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+			Class fieldType = field.getType();
+			try {
+				Method getMethod = entity.getClass().getMethod(getMethodName);
+				if (fieldType.equals(String.class)){
+						ps.setString(count, (String) getMethod.invoke(entity));
+				}
+				if (fieldType.equals(Date.class)){
+						ps.setTimestamp(count, new java.sql.Timestamp(((Date) getMethod.invoke(entity)).getTime()));
+				}
+			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				throw new RuntimeException(e);
+			}
+			count++;
+		}
+	};
+	protected abstract T bindRSToObject(ResultSet rs) throws SQLException;
 
 	
 	String getInsertColumnNames(){
-		String returnString = "";
+		StringBuilder sb = new StringBuilder();
 		String[] colNames = getColumnNames();
-		returnString += colNames[0];
+		sb.append( colNames[0]);
 		for (int i =1 ; i< colNames.length; i++){
-			returnString += "," +colNames[i];
+			sb.append( ",");
+			sb.append(colNames[i]);
 		}
-		return returnString;
+		return sb.toString();
 	}
 	String getQuestionMarks(){
-		String returnString = "";
+		StringBuilder sb = new StringBuilder();
 		String[] colNames = getColumnNames();
-		returnString += " ? ";
+		sb.append( " ? ");
 		for (int i =1 ; i< colNames.length; i++){
-			returnString += ", ? ";
+			sb.append( ", ? ");
 		}
-		return returnString;
+		return sb.toString();
 		
+	}
+	String getUpdateColumns(){
+		StringBuilder sb = new StringBuilder();
+		String[] colNames = getColumnNames();
+		sb.append( colNames[0]+" = ?");
+		for (int i =1 ; i< colNames.length; i++){
+			sb.append( ",");
+			sb.append(colNames[i]+ "=?");
+		}
+		return sb.toString();
 	}
 	
 	public void insert(T entity){
@@ -68,21 +119,85 @@ public abstract class GenericDAO<T extends Entity> {
 			closeConnection(connection);
 		}
 	}
-	public void update(T book){
+	public void update(T entity){
+		Connection connection = null;
+		try{
+			String sql = "update "+getTableName() +" set "+getUpdateColumns()
+					+ "where id = "+entity.getId();
+			PreparedStatement ps = getPreparedStatement(connection,sql);
+			populatePS(ps, entity);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		} finally {
+			closeConnection(connection);
+		}
 		
 	}
 	public void delete(long id){
+		Connection connection = null;
+		try{
+			String sql = "delete from "+getTableName() 
+					+ " where id = "+id;
+			PreparedStatement ps = getPreparedStatement(connection,sql);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		} finally {
+			closeConnection(connection);
+		}
 		
 	}
-	public void delete(T book){
+	public void delete(T entity){
+		delete(entity.getId());
 		
 	}
 	
 	public T findById(long id){
-		return null;
+		T entity = null;
+		String sql = "select * from "+getTableName()+" where id = ?";
+		Connection connection = null;
+		try{
+			PreparedStatement ps = this.getPreparedStatement(connection, sql);
+			ps.setLong(1, id);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()){
+				entity = this.bindRSToObject(rs);
+			}
+		}catch(SQLException e){
+			throw new RuntimeException(e);
+			
+		}finally{
+			this.closeConnection(connection);
+			
+		}
+		
+		return entity;
 	}
 	public List<T> getAll(){
-		return null;	
+		List<T> entitys = new LinkedList<T>();
+		String sql = "select * from "+getTableName()+";";
+		
+		Connection connection = null;
+		try{
+			PreparedStatement ps = this.getPreparedStatement(connection, sql);
+			// no population of ps
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()){
+				T  entity = this.bindRSToObject(rs);
+				entitys.add(entity);
+			}
+			
+		}catch(SQLException e){
+			throw new RuntimeException(e);
+		}finally{
+			if (connection != null){
+				this.closeConnection(connection);
+			}
+		}
+		
+		return entitys;
+	
 	}
 	private void closeConnection(Connection connection){
 		if (connection!= null){

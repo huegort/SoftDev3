@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import ie.gmit.dao.BookDAO;
+import ie.gmit.dao.impl.BookDAOGenericImpl;
 import ie.gmit.dao.impl.BookDAOListImpl;
 import ie.gmit.dao.impl.BookDAOSimpleImpl;
 import ie.gmit.domain.Book;
@@ -13,7 +14,7 @@ public class TestDAO {
 	public static void main(String[] args) {
 		System.out.println("test");
 		
-		BookDAO bookDAO = new BookDAOSimpleImpl();
+		BookDAO bookDAO = new BookDAOGenericImpl();
 		
 		Book book1 = new Book(1,"title1","author1",new Date());
 		Book book2 = new Book(1,"title2","author2",new Date());
